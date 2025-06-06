@@ -1,5 +1,14 @@
 Bun.serve({
   routes: {
+    "/assets/style.css": async () => {
+      const cssContent = await Bun.file('./src/server/stylesheets/output.css').text()
+      
+      return new Response(cssContent, {
+        headers: {
+          "Content-Type": "text/css"
+        }
+      })
+    },
     "/assets/*": async (req) => {
       const url = new URL(req.url)
       const filePath = `./src/client${url.pathname.replace('/assets', '')}`
@@ -22,6 +31,7 @@ Bun.serve({
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <title>no-bundle-development</title>
+            <link rel="stylesheet" href="/assets/style.css">
           </head>
           <body>
             <div id="app"></div>
