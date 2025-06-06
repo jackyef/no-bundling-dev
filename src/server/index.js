@@ -1,3 +1,4 @@
+const isProduction = process.env.NODE_ENV === 'production';
 const transpiler = new Bun.Transpiler({ 
   loader: 'jsx', 
   target: 'browser',
@@ -9,14 +10,37 @@ const transpiler = new Bun.Transpiler({
   }
 })
 
+const serverBootupTimestamp = Date.now();
+const simpleCacheHeaders = isProduction ? {
+  "ETag": `W/${serverBootupTimestamp}`,
+  "Cache-Control": "public, max-age=31536000"
+} : {
+  "Cache-Control": "no-cache, no-store",
+}
+
+// Simple cache to avoid repeated transpilation in production.
+const cachedAssets = new Map();
+
 Bun.serve({
+  port: 3000,
+  development: !isProduction,
   routes: {
+    // Health checks
+    "/health": new Response("OK"),
     "/assets/style.css": async () => {
-      const cssContent = await Bun.file('./src/server/stylesheets/output.css').text()
+      const cssContent = 
+        cachedAssets.get('./src/server/stylesheets/output.css') || 
+        await Bun.file('./src/server/stylesheets/output.css').text()
       
+
+    if (isProduction) {
+      cachedAssets.set('./src/server/stylesheets/output.css', cssContent);
+    }
+
       return new Response(cssContent, {
         headers: {
-          "Content-Type": "text/css"
+          "Content-Type": "text/css",
+          ...simpleCacheHeaders
         }
       })
     },
@@ -24,15 +48,29 @@ Bun.serve({
       const url = new URL(req.url)
       const filePath = `./src/client${url.pathname.replace('/assets', '')}`
 
+      if (cachedAssets.has(filePath)) {
+        return new Response(cachedAssets.get(filePath), {
+          headers: {
+            "Content-Type": "application/javascript",
+            ...simpleCacheHeaders
+          }
+        })
+      }
+      
       try {
         const transpiled = transpiler.transformSync(
           await Bun.file(filePath).text()
         )
+        const output = `import * as preact from 'preact';\n${transpiled}`
+        
+        if (isProduction) {
+          cachedAssets.set(filePath, output);
+        }
 
-        return new Response(`import * as preact from 'preact';\n${transpiled}`, {
+        return new Response(output, {
           headers: {
             "Content-Type": "application/javascript",
-            "Cache-Control": "no-cache"
+            ...simpleCacheHeaders
           }
         })
       } catch (error) {
@@ -41,6 +79,15 @@ Bun.serve({
       }
     },
     "/": async () => {
+      const importMap = cachedAssets.get('./src/client/dependencies.json')
+        || JSON.stringify({
+          imports: await Bun.file('./src/client/dependencies.json').json()
+        })
+
+      if (isProduction) {
+        cachedAssets.set('./src/client/dependencies.json', importMap);
+      }
+
       return new Response(`
         <!DOCTYPE html>
           <head>
@@ -52,17 +99,24 @@ Bun.serve({
           <body>
             <div id="app"></div>
           </body>
-          <script type="importmap">${JSON.stringify({
-            imports: await Bun.file('./src/client/dependencies.json').json()
-          })}</script>
+          <script type="importmap">${importMap}</script>
           <script type="module" src="/assets/index.tsx"></script>
         </html>
-        `.trim(), {
-        headers: {
-          "Content-Type": "text/html",
-          "Cache-Control": "no-cache"
+        `.trim(), 
+        {
+          headers: {
+            "Content-Type": "text/html",
+            ...simpleCacheHeaders
+          }
         }
-      })
+      )
     }
-  }
+  },
+  fetch(req) {
+    console.log('Request received:', req.method, req.url);
+    // Fallback for any unmatched routes
+    return new Response("404!");
+  },
 })
+
+console.log(`Server listening on port 3000`)
