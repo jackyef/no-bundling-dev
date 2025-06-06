@@ -1,0 +1,4 @@
+{
+  "htm/preact": "https://unpkg.com/htm/preact/standalone.module.js",
+  "preact": "https://unpkg.com/preact@10.26.4/dist/preact.module.js"
+}
