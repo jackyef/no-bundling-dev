@@ -1,15 +1,5 @@
 # no-bundling-dev
 
-To install dependencies:
+Experiment to see how far web development can go without bundling in 2025.
 
-```bash
-bun install
-```
-
-To run:
-
-```bash
-bun run index.js
-```
-
-This project was created using `bun init` in bun v1.2.15. [Bun](https://bun.sh) is a fast all-in-one JavaScript runtime.
+One rule: Avoid using as much build tools as you can.

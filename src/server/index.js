@@ -1,3 +1,14 @@
+const transpiler = new Bun.Transpiler({ 
+  loader: 'jsx', 
+  target: 'browser',
+  tsconfig: {
+    compilerOptions: {
+      jsx: 'react',
+      jsxFactory: 'preact.h',
+    }
+  }
+})
+
 Bun.serve({
   routes: {
     "/assets/style.css": async () => {
@@ -14,13 +25,18 @@ Bun.serve({
       const filePath = `./src/client${url.pathname.replace('/assets', '')}`
 
       try {
-        return new Response(await Bun.file(filePath).bytes(), {
+        const transpiled = transpiler.transformSync(
+          await Bun.file(filePath).text()
+        )
+
+        return new Response(`import * as preact from 'preact';\n${transpiled}`, {
           headers: {
             "Content-Type": "application/javascript",
             "Cache-Control": "no-cache"
           }
         })
-      } catch {
+      } catch (error) {
+        console.error(`Error serving asset ${filePath}:`, error)
         return new Response("Not Found", { status: 404 })
       }
     },
@@ -39,7 +55,7 @@ Bun.serve({
           <script type="importmap">${JSON.stringify({
             imports: await Bun.file('./src/client/dependencies.json').json()
           })}</script>
-          <script type="module" src="/assets/index.js"></script>
+          <script type="module" src="/assets/index.tsx"></script>
         </html>
         `.trim(), {
         headers: {

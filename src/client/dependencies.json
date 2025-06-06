@@ -1,4 +1,5 @@
 {
-  "htm": "https://unpkg.com/htm@3.1.1/dist/htm.module.js",
-  "preact": "https://unpkg.com/preact@10.26.4/dist/preact.module.js"
+  "preact": "https://unpkg.com/preact@10.26.4/dist/preact.module.js",
+  "preact/hooks": "https://unpkg.com/preact@10.26.4/hooks/dist/hooks.module.js",
+  "preact/compat": "https://unpkg.com/preact@10.26.4/compat/dist/compat.module.js"
 }
