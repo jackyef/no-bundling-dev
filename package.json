@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "bun run scripts/dev.js",
+    "start": "bun run scripts/dev.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
