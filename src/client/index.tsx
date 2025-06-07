@@ -11,5 +11,4 @@ const App = () => {
   );
 }
 
-// @ts-expect-error
-render(<App />, document.getElementById('app'));
+render(<App />, document.getElementById('app')!);
